@@ -12,7 +12,7 @@ library(tidyr) # Tidy data
 # Mowing Frequency ####
 
 # Import the data
-data_diary_raw <- read.csv("diary.csv")
+data_diary_raw <- read.csv("data/diary.csv")
 
 # Check the data
 head(data_diary_raw)
@@ -60,7 +60,7 @@ ggplot(tbl_diary |> filter(草刈り == "草刈りした日"), aes(x = 年月, y
 # Area Flow (All Country vs Tohigi) ####
 
 # Get the area data
-data_areaFlow_raw <- read.csv("本地けい畔別耕地面積統計_累年.csv")
+data_areaFlow_raw <- read.csv("data/本地けい畔別耕地面積統計_累年.csv")
 head(data_areaFlow_raw)
 glimpse(data_areaFlow_raw)
 
@@ -168,7 +168,7 @@ ggplot(data_areaPref_2022, aes(x = long, y = lat, group = group, fill = value) )
 # Ridge Area Per Farmer (2019) ####
 
 # Get the data
-data_pop_raw <- read.csv("販売農家人口.csv")
+data_pop_raw <- read.csv("data/販売農家人口.csv")
 head(data_pop_raw)
 glimpse(data_pop_raw)
 
