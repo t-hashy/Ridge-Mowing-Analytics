@@ -107,7 +107,7 @@ ggplot(data_areaFlow_gthrd |> filter(その他 == "増減率"), aes(x = 年次, 
 # Ridge Ratio ####
 
 # Import the data
-data_areaPref_raw <- read.csv("本地けい畔別耕地面積累年統計_都道府県別.csv")
+data_areaPref_raw <- read.csv("data/本地けい畔別耕地面積累年統計_都道府県別.csv")
 head(data_areaPref_raw)
 glimpse(data_areaPref_raw)
 
@@ -165,6 +165,26 @@ ggplot(data_areaPref_2022, aes(x = long, y = lat, group = group, fill = value) )
     axis.title = element_blank()
   )
 
+# Visualize only fields
+# Visualize
+ggplot(data_areaPref_2022 |> filter(田畑 == "畑"), aes(x = long, y = lat, group = group, fill = value) ) +
+  geom_polygon(linewidth = 0.5, colour = "#aaaaaa") +
+  coord_map() +
+  scale_fill_gradient(low = "#ffffff", high = "#333333", labels = scales::percent) +
+  # facet_wrap(~田畑) +
+  labs(
+    title = "都道府県別けい畔率（畑地のみ、2022年比較）",
+    subtitle = "※けい畔率：本地（作付けできる部分）に対するけい畔の広さ",
+    caption = "作物統計調査（農水省）より橋本作成",
+    fill = "けい畔率"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = .5),
+    plot.subtitle = element_text(hjust = 0),
+    strip.background = element_rect(linewidth = 0.5),
+    axis.title = element_blank()
+  )
 # Ridge Area Per Farmer (2019) ####
 
 # Get the data
@@ -290,6 +310,103 @@ ggplot(data_ridgePerPop2019_cor, aes(x = 販売農家人口, y = 面積, label =
     strip.background = element_rect(linewidth = 0.5)
   )
 
+# Visualize only fields
+ggplot(data_ridgePerPop2019_map |> filter(田畑 == "畑"), aes(x = long, y = lat, group = group, fill = value*10000)) +
+  geom_polygon(linewidth = .5, colour = "#aaaaaa") +
+  coord_map() +
+  scale_fill_gradient(low = "#ffffff", high = "#333333") +
+  # facet_wrap(~田畑) +
+  labs(
+    title = "都道府県別 農家当たりのけい畔面積（畑地のみ、2019年比較）",
+    subtitle = "※農家人口には「販売農家（経営耕地面積30a以上または農産物販売金額が50万円以上の農家）」の数値を利用。",
+    caption = "けい畔面積は作物統計調査（農水省）、農家人口は農業構造動態調査（同）より橋本作成",
+    fill = "農家当たりのけい畔面積（平米）"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = .5),
+    plot.subtitle = element_text(hjust = 1),
+    strip.background = element_rect(linewidth = 0.5),
+    axis.title = element_blank()
+  )
+
+# Ridge Area Per Yields (2022) ####
+
+# Load the data
+data_yields2022_raw <- read.csv("data/生産農業所得統計2022_都道府県別農業産出額及び生産農業所得.csv")
+head(data_yields2022_raw)
+glimpse(data_yields2022_raw)
+
+# Shape the data
+data_yields2022 <- data_yields2022_raw |>
+  mutate(region = tolower(region)) |>
+  left_join(filter(data_areaPref, 年次 == 2022)) |>
+  mutate(
+    産出額あたりけい畔面積_田 = 田_けい畔_ha/米,
+    産出額あたりけい畔面積指数_田 = scale(産出額あたりけい畔面積_田),
+    産出額あたりけい畔面積_畑 = 畑_けい畔_ha/米を除く耕種,
+    産出額あたりけい畔面積指数_畑 = scale(産出額あたりけい畔面積_畑)
+  ) |>
+  right_join(map_data, by = "region", relationship = "many-to-many") |>
+  select(都道府県名, region, starts_with("産出額"), long, lat, group)
+head(data_yields2022)
+glimpse(data_yields2022)
+
+data_yields2022_gth <- gather(
+  data_yields2022,
+  key = "Index",
+  value = "value",
+  -c(都道府県名, region, long, lat, group)
+) |>
+  separate(
+    col = Index,
+    into = c("Index", "田畑"),
+    sep = "_"
+  )
+head(data_yields2022_gth)
+glimpse(data_yields2022_gth)
+
+# Visualize as a map
+ggplot(data_yields2022_gth |> filter(Index == "産出額あたりけい畔面積指数"), aes(x = long, y = lat, group = group, fill = value) )+
+  geom_polygon(linewidth = .5, colour = "#aaaaaa") +
+  coord_map() +
+  scale_fill_gradient(low = "#ffffff", high = "#333333") +
+  facet_wrap(~田畑) +
+  labs(
+    title = "都道府県別 農業産出額あたりのけい畔面積（2022年比較）",
+    subtitle = "＊農業産出額｜田：米の産出量、畑：米を除く耕種の産出量合計を利用。",
+    caption = "けい畔面積は作物統計調査（農水省）、農業産出額は生産農業所得統計（同）より橋本作成",
+    fill = "農業産出額当たりのけい畔面積（標準化済）"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = .5),
+    plot.subtitle = element_text(hjust = 1),
+    strip.background = element_rect(linewidth = 0.5),
+    axis.title = element_blank()
+  )
+
+# Visualize as a map only with fields
+ggplot(data_yields2022_gth |> filter(Index == "産出額あたりけい畔面積指数", 田畑 == "畑"), aes(x = long, y = lat, group = group, fill = value) )+
+  geom_polygon(linewidth = .5, colour = "#aaaaaa") +
+  coord_map() +
+  scale_fill_gradient(low = "#ffffff", high = "#333333") +
+  # facet_wrap(~田畑) +ぇ
+  labs(
+    title = "都道府県別 農業産出額あたりのけい畔面積（畑地のみ、2022年比較）",
+    subtitle = "＊農業産出額：米を除く耕種の産出量合計を利用。",
+    caption = "けい畔面積は作物統計調査（農水省）、農業産出額は生産農業所得統計（同）より橋本作成",
+    fill = "標準化済指数"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = .5),
+    plot.subtitle = element_text(hjust = 1),
+    strip.background = element_rect(linewidth = 0.5),
+    axis.title = element_blank(),
+    # legend.position = "bottom"
+  )
+
 # Color Plots ####
 
 ## Mowing Frequency ####
@@ -403,4 +520,24 @@ ggplot(data_ridgePerPop2019_cor, aes(x = 販売農家人口, y = 面積, label =
     plot.subtitle = element_text(hjust = 1),
     legend.text = element_text(face = "bold"),
     strip.background = element_rect(linewidth = 0.5)
+  )
+
+# Ridge per Yields ####
+ggplot(data_yields2022_gth |> filter(Index == "産出額あたりけい畔面積指数"), aes(x = long, y = lat, group = group, fill = value) )+
+  geom_polygon(linewidth = .5, colour = "#aaaaaa") +
+  coord_map() +
+  scale_fill_gradient(low = "#ffffff", high = "#773333") +
+  facet_wrap(~田畑) +
+  labs(
+    title = "都道府県別 農業産出額あたりのけい畔面積（2022年比較）",
+    subtitle = "＊農業産出額｜田：米の産出量、畑：米を除く耕種の産出量合計を利用。",
+    caption = "けい畔面積は作物統計調査（農水省）、農業産出額は生産農業所得統計（同）より橋本作成",
+    fill = "農業産出額当たりのけい畔面積（標準化済）"
+  ) +
+  theme_void() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = .5),
+    plot.subtitle = element_text(hjust = 1),
+    strip.background = element_rect(linewidth = 0.5),
+    axis.title = element_blank()
   )
